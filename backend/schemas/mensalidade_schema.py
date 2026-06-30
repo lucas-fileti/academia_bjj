@@ -1,5 +1,6 @@
 from datetime import date, datetime
 from pydantic import BaseModel, Field, ConfigDict, field_validator, field_serializer
+from typing import Literal
 
 
 def converter_data_brasileira(valor):
@@ -17,7 +18,30 @@ class MensalidadeCreate(BaseModel):
     valor: float = Field(..., gt=0)
     data_vencimento: date
     data_pagamento: date | None = None
-    status: str = "pendente"
+    status: Literal["pendente", "paga", "vencida", "cancelada"] = "pendente"
+    forma_pagamento: str | None = None
+    observacao: str | None = None
+
+    @field_validator("data_vencimento", "data_pagamento", mode="before")
+    @classmethod
+    def validar_datas(cls, valor):
+        return converter_data_brasileira(valor)    
+
+class MensalidadePagar(BaseModel):
+    data_pagamento: date
+    forma_pagamento: Literal["pix", "cartao", "dinheiro"]
+
+    @field_validator("data_pagamento", mode="before")
+    @classmethod
+    def validar_data_pagamento(cls, valor):
+        return converter_data_brasileira(valor)
+
+
+class MensalidadeUpdate(BaseModel):
+    valor: float | None = Field(default=None, gt=0)
+    data_vencimento: date | None = None
+    data_pagamento: date | None = None
+    status: Literal["pendente", "paga", "vencida", "cancelada"] | None = None
     forma_pagamento: str | None = None
     observacao: str | None = None
 
@@ -25,7 +49,6 @@ class MensalidadeCreate(BaseModel):
     @classmethod
     def validar_datas(cls, valor):
         return converter_data_brasileira(valor)
-
 
 class MensalidadeResponse(BaseModel):
     id: int
