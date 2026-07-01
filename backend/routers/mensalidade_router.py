@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from datetime import date, timedelta
 
 from database import get_db
 from models.aluno_model import Aluno
@@ -12,6 +13,17 @@ router = APIRouter(
     tags=["Mensalidades"]
 )
 
+def atualizar_mensalidades_vencidas(db: Session):
+    hoje = date.today()
+    mensalidades_vencidas = db.query(Mensalidade).filter(
+        Mensalidade.status == "pendente",
+        Mensalidade.data_vencimento < hoje
+    ).all()
+
+    for mensalidade in mensalidades_vencidas:
+        mensalidade.status = "vencida"
+
+    db.commit()
 
 @router.post("/", response_model=MensalidadeResponse)
 def criar_mensalidade(
@@ -40,6 +52,35 @@ def criar_mensalidade(
 
     return nova_mensalidade
 
+@router.get("/vencidas", response_model=list[MensalidadeResponse])
+def listar_mensalidades_vencidas(
+    db: Session = Depends(get_db)
+):
+    atualizar_mensalidades_vencidas(db)
+
+    mensalidades= db.query(Mensalidade).filter(
+        Mensalidade.status == "vencida"
+    ).all()
+
+    return mensalidades
+
+@router.get("/a-vencer", response_model=list[MensalidadeResponse])
+def listar_mensalidades_a_vencer(
+    dias: int = 7,
+    db: Session = Depends(get_db)
+):
+    atualizar_mensalidades_vencidas(db)
+
+    hoje = date.today()
+    data_limite = hoje + timedelta(days=dias)
+
+    mensalidades = db.query(Mensalidade).filter(
+        Mensalidade.status == "pendente",
+        Mensalidade.data_vencimento >= hoje,
+        Mensalidade.data_vencimento <= data_limite
+    ).all()
+
+    return mensalidades
 
 @router.get("/", response_model=list[MensalidadeResponse])
 def listar_mensalidades(
@@ -47,7 +88,7 @@ def listar_mensalidades(
     status: str | None = None,
     db: Session = Depends(get_db)
 ):
-    
+    atualizar_mensalidades_vencidas(db)
     query = db.query(Mensalidade)
 
     if aluno_id is not None:
@@ -92,6 +133,9 @@ def pagar_mensalidade(
     dados_pagamento: MensalidadePagar,
     db: Session = Depends(get_db)
 ):
+    
+    atualizar_mensalidades_vencidas(db)     
+    
     mensalidade = db.query(Mensalidade).filter(Mensalidade.id == mensalidade_id).first()
 
     if mensalidade is None:
