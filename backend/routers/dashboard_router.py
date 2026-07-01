@@ -1,10 +1,14 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+from datetime import date
 
 from database import get_db
+
 from models.aluno_model import Aluno
 from models.mensalidade_model import Mensalidade
+from models.presenca_model import Presenca
+
 from routers.mensalidade_router import atualizar_mensalidades_vencidas
 
 
@@ -17,6 +21,9 @@ router = APIRouter(
 @router.get("/resumo")
 def resumo_dashboard(db: Session = Depends(get_db)):
     atualizar_mensalidades_vencidas(db)
+
+    hoje = date.today()
+    primeiro_dia_mes = hoje.replace(day=1)
 
     total_alunos_ativos = db.query(Aluno).filter(
         Aluno.ativo == True
@@ -42,11 +49,22 @@ def resumo_dashboard(db: Session = Depends(get_db)):
         Mensalidade.status == "vencida"
     ).scalar()
 
+    presencas_hoje = db.query(Presenca).filter(
+        Presenca.data_presenca == hoje
+    ).count()
+
+    presencas_mes = db.query(Presenca).filter(
+    Presenca.data_presenca >= primeiro_dia_mes,
+    Presenca.data_presenca <= hoje
+).count()
+
     return {
         "total_alunos_ativos": total_alunos_ativos,
         "mensalidades_pendentes": mensalidades_pendentes,
         "mensalidades_vencidas": mensalidades_vencidas,
         "mensalidades_pagas": mensalidades_pagas,
         "valor_recebido": float(valor_recebido or 0),
-        "valor_vencido": float(valor_vencido or 0)
+        "valor_vencido": float(valor_vencido or 0),
+        "presencas_hoje": presencas_hoje,
+        "presencas_mes": presencas_mes
     }
