@@ -1,5 +1,6 @@
 from datetime import date, datetime
 from pydantic import BaseModel, Field, ConfigDict, field_validator, field_serializer
+from typing import Literal
 
 
 def converter_data_brasileira(valor):
@@ -17,7 +18,17 @@ class AlunoCreate(BaseModel):
     data_nascimento: date | None = None
     telefone: str | None = None
     endereco: str | None = None
-    faixa_atual: str = "branca"
+    faixa_atual: Literal[
+    "branca",
+    "cinza",
+    "amarela",
+    "laranja",
+    "verde",
+    "azul",
+    "roxa",
+    "marrom",
+    "preta"
+] = "branca"
     graus_atual: int = Field(default=0, ge=0, le=4)
     data_matricula: date | None = None
     observacoes: str | None = None
@@ -32,7 +43,17 @@ class AlunoUpdate(BaseModel):
     data_nascimento: date | None = None
     telefone: str | None = None
     endereco: str | None = None
-    faixa_atual: str | None = None
+    faixa_atual: Literal[
+    "branca",
+    "cinza",
+    "amarela",
+    "laranja",
+    "verde",
+    "azul",
+    "roxa",
+    "marrom",
+    "preta"
+] | None = None
     graus_atual: int | None = Field(default=None, ge=0, le=4)
     ativo: bool | None = None
     data_matricula: date | None = None

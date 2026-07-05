@@ -8,6 +8,7 @@ from database import get_db
 from models.aluno_model import Aluno
 from models.mensalidade_model import Mensalidade
 from models.presenca_model import Presenca
+from models.graduacao_model import Graduacao   
 
 from routers.mensalidade_router import atualizar_mensalidades_vencidas
 
@@ -57,6 +58,11 @@ def resumo_dashboard(db: Session = Depends(get_db)):
     Presenca.data_presenca >= primeiro_dia_mes,
     Presenca.data_presenca <= hoje
 ).count()
+    
+    graduacoes_mes = db.query(Graduacao).filter(
+    Graduacao.data_graduacao >= primeiro_dia_mes,
+    Graduacao.data_graduacao <= hoje
+).count()
 
     return {
         "total_alunos_ativos": total_alunos_ativos,
@@ -66,5 +72,6 @@ def resumo_dashboard(db: Session = Depends(get_db)):
         "valor_recebido": float(valor_recebido or 0),
         "valor_vencido": float(valor_vencido or 0),
         "presencas_hoje": presencas_hoje,
-        "presencas_mes": presencas_mes
+        "presencas_mes": presencas_mes,
+        "graduacoes_mes": graduacoes_mes
     }
